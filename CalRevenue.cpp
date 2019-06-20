@@ -249,5 +249,155 @@ double cal_tax(double total, void *param) {
 	return tax_res;
 }	
 
+/***解耦的好处
+1、解耦之前是易变的和不变的耦合在了一起，写在了一个函数中。解耦后是将易变的和不变的模块化，然后引入中间机制。
+2、解耦后，可以方便做单元测试，更容易确定是哪个部分出现的问题。
+3、解耦后代码可以复用了，其他人可以更方便调用相应的模块。
+4、如果某一个函数中，if else语句太多了，可以将此函数拆分成多个函数，然后使用函数指针。如果拆分成的几个函数
+***/
+struct Revenue {
+    RevenueType type;   //收入的类型，决定了计税方式
+    Time time;          //收入发生的时间
+                        //  税法会随时间发生变化，引起算法的不同。
+    double num;         //收入数额
+};
+double calc_income(RevenueList *revs)
+{
+    //第一步：计算总收入
+    total = total_revenue(revs);
+    //第二步：计算个人所得税
+	if(time <= 2011) {
+		if (total <= 3500 * 12)
+			tax = 0;
+		else if (total <= 5000 * 12)
+			tax = total * 0.03;
+		else if (total <= 8000 * 12)
+			tax = total * 0.10 - 105;
+		else
+        ...
+	}else if(time <= 2018) {
+		if(){
+		}else if(){
+		}else{
+			...............
+		}
+	}
+    //第三步：计算税后收入
+    return total - tax;
+}
+//上述在生产阶段耦合了易变的计算。
 
 
+double calc_tax(double total)
+{
+    if(time <= 2011) {
+		if (total <= 3500 * 12)
+			tax = 0;
+		else if (total <= 5000 * 12)
+			tax = total * 0.03;
+		else if (total <= 8000 * 12)
+			tax = total * 0.10 - 105;
+		else
+        ...
+	}else if(time <= 2018) {
+		if(){
+		}else if(){
+		}else{
+			...............
+		}
+	}
+	return tax;
+}
+double calc_income(RevenueList *revs)
+{
+    //第一步：计算总收入
+    total = total_revenue(revs);
+    //第二步：计算个人所得税
+    tax = calc_tax(total);
+    //第三步：计算税后收入
+    return total - tax;
+}
+//将易变的单独分离出来作为一个函数
+
+
+double calc_tax_v1(double total);   //2011年之前实行的v1版本
+double calc_tax_v2(double total);   //2011年之后实行的v2版本
+double calc_tax_v3(double total);   //
+...
+double calc_income(RevenueList *revs, double (*calc)(double))
+{
+    //第一步：计算总收入
+    total = total_revenue(revs);
+    //第二步：计算个人所得税
+    tax = calc(total);
+    //第三步：计算税后收入
+    return total - tax;
+}
+//  根据收入时间的不同，使用不同的个人所得税计算方法来计算税后收入
+if (纳税年度为2011之前) {
+    income = calc_income(revs, calc_tax_v1);
+} else if (纳税年度为2011之后) {
+    income = calc_income(revs, calc_tax_v2);
+}
+//在易变的函数中if else语句太多了，更进一步，将其提取出来作为函数，然后使用函数指针。
+
+
+struct Calc {
+    double (*calc_tax)(double total, void *para);
+    void *para;
+};
+// 累进税率
+struct ProgressiveRate {
+    double threshold;       //起征点
+    double rate;            //税率
+};
+//  2011年前使用的累进税率版本
+static ProgressiveRate s_wage_tax_v1[] = {
+    {2000, 0.03},
+    {4500, 0.10},
+    {6000, 0.15},
+    ...
+    {0, 0}
+};
+//  2011年后使用的累进税率版本
+static ProgressiveRate s_wage_tax_v2[] = {
+    {3500, 0.03},
+    {5000, 0.10},
+    {8000, 0.15},
+    ...
+    {0, 0}
+};
+double calc_wage_tax(double val, void *para)
+{
+    ProgressiveRate *rates = (ProgressiveRate *)para;
+    //  根据累进税率计算个税
+    ...
+    return tax;
+}
+//  “制程”阶段
+Calc *process()
+{
+    calc = malloc(sizeof(Calc));
+    calc->calc_tax = calc_wage_tax;
+    //  根据收入时间的不同，使用不同的个人所得税计算方法
+    if (纳税年度为2011之前) {
+        calc->para = s_wage_tax_v1;
+    } else if (纳税年度为2011之后) {
+        calc->para = s_wage_tax_v2;
+    } else ...
+    return calc;
+}
+//  “生产”阶段：使用制程阶段定制过的流程进行计算，即计算出税后收入
+double calc_income(RevenueList *revs, Calc *calc)
+{
+    //第一步：计算总收入
+    total = total_revenue(revs);
+    //第二步：计算个人所得税
+    tax = calc->calc_tax(total, calc->para);
+    //第三步：计算税后收入
+    return total - tax;
+}
+calc = process();
+income = calc_income(revs, calc);
+...
+//因为函数只是参数不同，那么就可以使用伴侣参数的方式。
