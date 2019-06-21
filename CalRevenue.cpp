@@ -200,6 +200,7 @@ const Calc* find_calc(Time end, RevenueType type) {
 struct Register {
 	int (*p_register_calc)(Time end, RevenueType type, Calc *calc);
 	const Calc * (*p_find_calc)(Time end, RevenueType type);
+	.....................
 };
 void init(struct Register *p_reg) {
 	Calc *calc1 = (Calc*)malloc(sizeof(Calc));
