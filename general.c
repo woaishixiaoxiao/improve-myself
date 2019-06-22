@@ -1,12 +1,5 @@
-#include <unistd.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-
-#ifndef _MAX_PATH
-#define _MAX_PATH 1024
-#endif
+#include<general.h>
+ 
 /**
  *  @brief 分解路径字符串，从中取出文件名，及扩展名
  *  @param [in] path    路径字符串
@@ -14,7 +7,7 @@
  *  @param [out] fname  文件名
  *  @param [out] fext   扩展名
  */
-static void split_path(const char *path, char *dir, char *fname, char *fext)
+void split_path(const char *path, char *dir, char *fname, char *fext)
 {
     unsigned int len = 0;
     unsigned int dirend = 0;         //目录名的结束位置
@@ -67,7 +60,7 @@ static void split_path(const char *path, char *dir, char *fname, char *fext)
 /**
  *  获取一行数据
  */
-static const char *getline(FILE *fp)
+const char *getline(FILE *fp)
 {
     static char linebuf[1024];
     int len;
@@ -82,62 +75,55 @@ static const char *getline(FILE *fp)
 /**
  * 从文件名中获取文件的后缀
  */
-static const char *getext(const char *fname)
+const char *getext(const char *fname)
 {
     static char ext[1024];
     split_path(fname, NULL, NULL, ext);
     return ext;
 }
-/**
- *  执行命令行
- */
-static int shell_exec(const char *cmd, ...)
-{
-    char buf[1024];
-    va_list ap;
 
-    va_start(ap, cmd);
-    vsnprintf(buf, sizeof(buf), cmd, ap);
-    va_end(ap);
-
-    int ret = system(buf);
-
-    return ret;
+FileType find_filename_suffix(const char *name, file_suffix *type_table) {
+	
+	/****
+	根据name到表中查询。
+	返回类型。
+	****/
 }
-/**
- *  执行批处理操作
- */
-void batch(const char *dir, const char *opt)
-{
-    const char *fname;
-    const char *fext;
-    char cmd[2048];
-    
-    snprintf(cmd, sizeof(cmd), "ls -1 \"%s\"", dir);
-    
-    FILE *fp = popen(cmd, "r");                     //1. 执行ls命令，获取文件列表
-    if (!fp) {
-        fprintf(stderr, "popen '%s' failed\n", dir);
-        return;
-    }
-    while (!feof(fp)) {
-        fname = getline(fp);                        //2. 获取一行数据，即一个文件名
-		if (!fname)
-            break;
-        fext = getext(fname);                       //3. 获取文件的后缀名
 
-        if (strcmp(opt, "show") == 0) {             //4. 要求显示文本文件内容
-            char *sub = strstr(".md;.txt;.log", fext);
-            if (sub && sub[strlen(fext)] == ';') {  //5. 通过文件名后缀，判断是否文本文件
-                shell_exec("cat %s", fname);        //6. 执行cat命令，显示文件内容
-            }
-        } else if (strcmp(opt, "exec") == 0) {      //7. 要求执行文件
-            char *sub = strstr(".exe;*.sh;*.bat", fext);
-            if (sub && sub[strlen(fext)] == ';') {  //8. 通过文件名后缀，判断是否可执行文件
-                shell_exec("%s", fname);            //9. 通过shell，执行该文件
-            }
-        }
-    }
-    pclose(fp);
+/**这里应该不用这么写，将类型和TXT以及EXE建立一个结构体，注册的时候，注册该表。
+在is_filename_suffix_exist中对该表进行查询，并返回类型。
+**/
+FileType detect_file_type(file_t *fname, file_suffix *type_table)
+{
+	assert(fname!=NULL && type_table);
+	FileType type;
+	const char *file_name = fname.str();
+	
+	type = find_filename_suffix(file_name, type_table);
+	return type;
 }
+void register_opt(const char *path, file_op *p，int exist_num) {
+	assert(path && p);
+	/**
+	解析json文件，然后存到p指定的表中。
+	json格式
+	{"pdf":"/xxx/xxx", "xml":"/xxx/xxx"};
+	**/
+}
+void register_type(const char *type_config_path, file_suffix *type_table) {
+	assert(type_config_path && type_table);
+	/**
+	解析ini文件，然后存到文件表中。
+	ini格式
+	
+	[EXEC]
+	 .sh
+	 .exe
+	 
+	[TXT]
+	 .md
+	 .txt
+	**/
+}
+
 
